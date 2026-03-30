@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface Props {
   targetId: string;
   filename?: string;
   backgroundColor?: string;
-  margin?: number[];
+  margin?: number | [number, number] | [number, number, number, number];
   label?: string;
 }
 
@@ -18,7 +18,7 @@ export default function PdfExportButton({ targetId, filename = 'propuesta-sixtea
       const element = document.getElementById(targetId);
       if (!element) { alert('No se encontró el elemento a exportar.'); return; }
 
-      const opt = {
+      const opt: any = {
         margin,
         filename,
         image:       { type: 'jpeg', quality: 0.92 },
@@ -77,7 +77,7 @@ export async function generatePdfBlob(targetId: string, filename: string, backgr
   const element = document.getElementById(targetId);
   if (!element) throw new Error('Elemento PDF no encontrado');
 
-  const opt = {
+  const opt: any = {
     margin: [0, 0, 0, 0],
     filename,
     image: { type: 'jpeg', quality: 0.92 },

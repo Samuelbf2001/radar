@@ -323,3 +323,40 @@ REGLAS FINALES:
 - canvas_pdf: cuerpo completo del entregable en HTML — diagnóstico, causas, plan, herramientas, KPIs, siguiente paso. Mínimo 800 palabras. Fácil de leer, secciones cortas, sin muros de texto. Específico para este caso. USA COMILLAS SIMPLES en todos los atributos HTML (class='card', no class="card").
 - Las herramientas sugeridas deben ser reales, específicas y justificadas para este caso.
 - Toda recomendación debe tener evidencia de la conversación. Sin evidencia, sin recomendación.`;
+
+export const SCORE_META: Record<string, { label: string, max: number }> = {
+  motivacion_urgencia: { label: 'Motivación y Urgencia', max: 5 },
+  dolor_comercial: { label: 'Dolor Comercial', max: 5 },
+  desorden_proceso: { label: 'Desorden Operativo/Proceso', max: 5 },
+  datos_visibilidad: { label: 'Datos y Visibilidad', max: 5 },
+  tecnologia_herramientas: { label: 'Tecnología y Herramientas', max: 5 },
+  capacidad_adopcion: { label: 'Capacidad de Adopción', max: 5 },
+  fit_sixteam: { label: 'Fit Sixteam', max: 5 },
+  potencial_solucion: { label: 'Potencial de Solución', max: 5 }
+};
+
+export const FIT_STYLE: Record<string, { bg: string, color: string, border: string }> = {
+  'Alto': { bg: '#e1f5ee', color: '#0f6e56', border: '#1d9e75' },
+  'Medio': { bg: '#faeeda', color: '#854f0b', border: '#fac775' },
+  'Bajo': { bg: '#fcebeb', color: '#a32d2d', border: '#e24b4a' }
+};
+
+export const REC_COLOR: Record<string, string> = {
+  'Implementación CRM': '#0f6e56',
+  'Automatización de Procesos': '#185fa5',
+  'Consultoría Estratégica': '#378add',
+  'Desarrollo a Medida': '#3c3489'
+};
+
+export const HORIZONTE_COLOR: Record<string, string> = {
+  'Semana 1-2': '#e24b4a',
+  'Mes 1': '#854f0b',
+  'Mes 2-3': '#185fa5',
+  'Mes 4-6': '#0f6e56'
+};
+
+export const PRIO_STYLE: Record<string, { bg: string, color: string }> = {
+  'Alta': { bg: '#fcebeb', color: '#a32d2d' },
+  'Media': { bg: '#faeeda', color: '#854f0b' },
+  'Baja': { bg: '#e1f5ee', color: '#0f6e56' }
+};

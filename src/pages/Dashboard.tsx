@@ -10,6 +10,7 @@ interface Job {
   fit: string | null;
   recomendacion: string | null;
   sent: boolean;
+  costo: number | null;
   files: string[];
 }
 
@@ -390,6 +391,9 @@ export default function Dashboard() {
                 )}
                 {job.fit && (
                   <span style={{ fontSize: 11, color: fitColor(job.fit) }}>Fit: {job.fit}</span>
+                )}
+                {job.costo !== null && (
+                  <span style={{ fontSize: 10, color: '#8b949e', marginLeft: 'auto' }}>${job.costo.toFixed(3)}</span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 3, marginTop: 7, flexWrap: 'wrap' }}>

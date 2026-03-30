@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { DiagnosticoResult } from '../types/diagnostico';
 import { SCORE_META, FIT_STYLE, REC_COLOR, HORIZONTE_COLOR, PRIO_STYLE } from '../constants/radar';
@@ -23,16 +23,6 @@ function ScoreBarPdf({ label, value, max }: { label: string; value: number; max:
       <div style={{ height: 4, background: '#eeece6', borderRadius: 2 }}>
         <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 2 }} />
       </div>
-    </div>
-  );
-}
-
-function DimBarsPdf({ values, max, color }: { values: number[]; max: number; color: string }) {
-  return (
-    <div style={{ display: 'flex', gap: 2 }}>
-      {Array.from({ length: max }, (_, i) => (
-        <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: i < values[0] ? color : '#ddd9ce' }} />
-      ))}
     </div>
   );
 }
@@ -74,14 +64,15 @@ export default function EntregableView() {
             const html2pdf = (await import('html2pdf.js')).default;
             const el = document.getElementById('entregable-pdf');
             if (!el) return;
-            await html2pdf().set({
+            const opt: any = {
               margin: [0, 0, 0, 0],
               filename: `radar-${data.empresa?.toLowerCase().replace(/\s+/g, '-') || 'diagnostico'}.pdf`,
               image: { type: 'jpeg', quality: 0.92 },
               html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
               jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
               pagebreak: { mode: ['css', 'legacy'], avoid: '.avoid-break' },
-            }).from(el).save();
+            };
+            await html2pdf().set(opt).from(el).save();
           }}
           style={{ background: 'linear-gradient(90deg,#1d70a2,#00bfa5)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
           Descargar PDF

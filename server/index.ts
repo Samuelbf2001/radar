@@ -151,6 +151,7 @@ app.get('/api/jobs', (_req, res) => {
         fit: meta.fit_sixteam ?? null,
         recomendacion: meta.recomendacion ?? null,
         sent: !!statusMeta.sent,
+        costo: statusMeta.usage?.cost_usd ?? null,
         files,
       };
     });

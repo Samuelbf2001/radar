@@ -1,0 +1,23 @@
+﻿src/App.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/PdfExportButton.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/PdfExportButton.tsx(30,28): error TS2345: Argument of type '{ margin: number[]; filename: string; image: { type: string; quality: number; }; html2canvas: { scale: number; useCORS: boolean; letterRendering: boolean; backgroundColor: string; }; jsPDF: { unit: string; format: string; orientation: "portrait"; }; pagebreak: { ...; }; }' is not assignable to parameter of type 'Html2PdfOptions'.
+  Types of property 'margin' are incompatible.
+    Type 'number[]' is not assignable to type 'number | [number, number] | [number, number, number, number] | undefined'.
+      Type 'number[]' is not assignable to type '[number, number] | [number, number, number, number]'.
+        Type 'number[]' is not assignable to type '[number, number, number, number]'.
+          Target requires 4 element(s) but source may have fewer.
+src/components/PdfExportButton.tsx(89,25): error TS2345: Argument of type '{ margin: number[]; filename: string; image: { type: string; quality: number; }; html2canvas: { scale: number; useCORS: boolean; backgroundColor: string; }; jsPDF: { unit: string; format: string; orientation: "portrait"; }; pagebreak: { ...; }; }' is not assignable to parameter of type 'Html2PdfOptions'.
+  Types of property 'margin' are incompatible.
+    Type 'number[]' is not assignable to type 'number | [number, number] | [number, number, number, number] | undefined'.
+      Type 'number[]' is not assignable to type '[number, number] | [number, number, number, number]'.
+        Type 'number[]' is not assignable to type '[number, number, number, number]'.
+          Target requires 4 element(s) but source may have fewer.
+src/pages/EntregableView.tsx(4,10): error TS2305: Module '"../constants/radar"' has no exported member 'SCORE_META'.
+src/pages/EntregableView.tsx(4,22): error TS2305: Module '"../constants/radar"' has no exported member 'FIT_STYLE'.
+src/pages/EntregableView.tsx(4,33): error TS2305: Module '"../constants/radar"' has no exported member 'REC_COLOR'.
+src/pages/EntregableView.tsx(4,44): error TS2305: Module '"../constants/radar"' has no exported member 'HORIZONTE_COLOR'.
+src/pages/EntregableView.tsx(4,61): error TS2305: Module '"../constants/radar"' has no exported member 'PRIO_STYLE'.
+src/pages/EntregableView.tsx(30,10): error TS6133: 'DimBarsPdf' is declared but its value is never read.
+src/pages/EntregableView.tsx(83,15): error TS2353: Object literal may only specify known properties, and 'pagebreak' does not exist in type 'Html2PdfOptions'.
+src/pages/EntregableView.tsx(182,43): error TS18046: 'm' is of type 'unknown'.
+src/pages/EntregableView.tsx(182,86): error TS18046: 'm' is of type 'unknown'.

@@ -40,7 +40,7 @@ function anthropicHeaders() {
 }
 
 /** Simple one-shot call — no tools */
-async function claudeCall(systemPrompt: string, userContent: string, maxTokens: number): Promise<string> {
+async function claudeCall(systemPrompt: string, userContent: string, maxTokens: number): Promise<{text: string, usage: any}> {
   const res = await fetch(ANTHROPIC_BASE, {
     method: 'POST',
     headers: anthropicHeaders(),
@@ -58,7 +58,11 @@ async function claudeCall(systemPrompt: string, userContent: string, maxTokens: 
   }
 
   const data = await res.json() as any;
-  return data.content?.[0]?.text ?? '';
+  const usage = data.usage || { input_tokens: 0, output_tokens: 0 };
+  const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
+  log(`[Claude] Tokens: ${usage.input_tokens} IN | ${usage.output_tokens} OUT — Costo Aprox: $${cost.toFixed(3)} USD`);
+
+  return { text: data.content?.[0]?.text ?? '', usage };
 }
 
 
@@ -69,10 +73,11 @@ function parseJson<T>(text: string): T {
 }
 
 /** Single-pass: analyze transcript and generate full diagnostic kit */
-async function generarKit(transcript: string): Promise<DiagnosticoResult> {
+async function generarKit(transcript: string): Promise<{kit: DiagnosticoResult, usage: any, cost: number}> {
   log('[Pipeline] Generating full diagnostic kit (single-pass)...');
-  const text = await claudeCall(SYSTEM_PROMPT, `TRANSCRIPCIÓN DE LA CONVERSACIÓN:\n\n${transcript}`, 64000);
-  return parseJson<DiagnosticoResult>(text);
+  const { text, usage } = await claudeCall(SYSTEM_PROMPT, `TRANSCRIPCIÓN DE LA CONVERSACIÓN:\n\n${transcript}`, 64000);
+  const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
+  return { kit: parseJson<DiagnosticoResult>(text), usage, cost };
 }
 
 /** Save all generated files to disk and return the output directory */
@@ -119,7 +124,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   }
 
   // 1. Full kit generation — single-pass analysis
-  const kit = await generarKit(transcript);
+  const { kit, usage, cost } = await generarKit(transcript);
   kit.empresa = kit.empresa || `Empresa-${slug}`;
 
   // 3. Voice notes
@@ -140,7 +145,12 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     contactId,
     phone,
     sent: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    usage: {
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cost_usd: cost
+    }
   }, null, 2));
 
   log(`[Pipeline] Saved for review. Waiting for manual approval on dashboard.`);
@@ -159,7 +169,7 @@ export async function reprocessDeliverables(slug: string): Promise<DiagnosticoRe
 
   log(`====== PIPELINE REPROCESS | slug=${slug} ======`);
   log('[Pipeline] Step 1: Regenerating full kit (Claude)...');
-  const kit = await generarKit(transcript);
+  const { kit, usage, cost } = await generarKit(transcript);
   kit.empresa = kit.empresa || `Empresa-${slug}`;
 
   log('[Pipeline] Step 3: Regenerating voice notes (ElevenLabs)...');
@@ -169,6 +179,21 @@ export async function reprocessDeliverables(slug: string): Promise<DiagnosticoRe
   const pdfBuffer = await generatePdf(kit);
 
   saveFiles(slug, kit, pdfBuffer, voiceBuffers);
+  
+  // Guardar nueva metadata con métricas actualizadas
+  const metaPath = path.join(outputDir, 'meta.json');
+  let meta: any = {};
+  if (fs.existsSync(metaPath)) {
+    try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+  }
+  meta.lastReprocessedAt = new Date().toISOString();
+  meta.usage = {
+    input_tokens: usage.input_tokens,
+    output_tokens: usage.output_tokens,
+    cost_usd: cost
+  };
+  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+
   log(`====== PIPELINE REPROCESS DONE | slug=${slug} ======`);
   
   return kit;
