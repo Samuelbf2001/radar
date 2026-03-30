@@ -16,7 +16,11 @@ import { sendDeliverable as sendDeliverableViaEvolution } from './evolution.js';
 
 const LOG_FILE = path.join(process.cwd(), 'server.log');
 function log(...args: any[]) {
-  const msg = `[${new Date().toISOString()}] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a, null, 2)).join(' ')}`;
+  const msg = `[${new Date().toISOString()}] ${args.map(a => {
+    if (typeof a === 'string') return a;
+    if (a instanceof Error) return `${a.name}: ${a.message}\n${a.stack}`;
+    return JSON.stringify(a, null, 2);
+  }).join(' ')}`;
   console.log(msg);
   fs.appendFileSync(LOG_FILE, msg + '\n');
 }
