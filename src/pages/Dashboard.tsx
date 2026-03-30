@@ -81,6 +81,7 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
   const [editJson, setEditJson] = useState('');
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
 
   const notaCRM = data.nota_crm ?? {};
   const dims: any[] = data.dimensiones ?? [];
@@ -127,6 +128,22 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
     }
   };
 
+  const handleReprocess = async () => {
+    if (!confirm(`¿Estás seguro de reprocesar por completo de nuevo este caso? Esto volverá a analizar el texto con Claude, usará ElevenLabs y guardará todo aquí de nuevo, consumiendo saldo de las APIs.`)) return;
+    try {
+      setReprocessing(true);
+      const res = await fetch(`/api/jobs/${slug}/reprocess`, { method: 'POST' });
+      const rData = await res.json();
+      if (!res.ok) throw new Error(rData.error || await res.text());
+      alert('¡Reprocesado exitosamente!');
+      onActionComplete();
+    } catch (e: any) {
+      alert('Error al reprocesar: ' + e.message);
+    } finally {
+      setReprocessing(false);
+    }
+  };
+
   if (editing) {
     return (
       <div style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -169,8 +186,9 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
           )}
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginLeft: 20 }}>
-          {!sent && <button onClick={handleEdit} style={{ background: '#21262d', border: '1px solid #30363d', color: '#e6edf3', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>✏️ Editar Datos</button>}
-          {!sent && <button onClick={handleSend} disabled={sending} style={{ background: '#1f6feb', border: '1px solid #388bfd', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{sending ? '🚀 Enviando...' : '🚀 Aprobar y Enviar'}</button>}
+          {!sent && <button onClick={handleReprocess} disabled={reprocessing || sending} style={{ background: '#0a2342', border: '1px solid #1d70a2', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: (reprocessing || sending) ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600 }}>{reprocessing ? '🔄 Reprocesando...' : '🔄 Reprocesar'}</button>}
+          {!sent && <button onClick={handleEdit} disabled={reprocessing || sending} style={{ background: '#21262d', border: '1px solid #30363d', color: '#e6edf3', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>✏️ Editar Datos</button>}
+          {!sent && <button onClick={handleSend} disabled={reprocessing || sending} style={{ background: '#1f6feb', border: '1px solid #388bfd', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{sending ? '🚀 Enviando...' : '🚀 Aprobar y Enviar'}</button>}
         </div>
       </div>
 

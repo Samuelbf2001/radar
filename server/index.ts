@@ -13,7 +13,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { runPipeline, sendDeliverables, updateDeliverables } from './pipeline.js';
+import { runPipeline, sendDeliverables, updateDeliverables, reprocessDeliverables } from './pipeline.js';
 
 // File-based logger (bypasses stdout buffering)
 const LOG_FILE = path.join(process.cwd(), 'server.log');
@@ -192,6 +192,18 @@ app.post('/api/jobs/:slug/update', async (req, res) => {
     res.json({ success: true });
   } catch (err: any) {
     log(`[API] Error actualizando job ${req.params.slug}: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** POST /api/jobs/:slug/reprocess — vuelve a correr TODO (Claude, 11Labs, PDF) desde transcript.txt */
+app.post('/api/jobs/:slug/reprocess', async (req, res) => {
+  try {
+    log(`[API] Solicitud de REPROCESAMIENTO COMPLETO para job: ${req.params.slug}`);
+    const newKit = await reprocessDeliverables(req.params.slug);
+    res.json({ success: true, kit: newKit });
+  } catch (err: any) {
+    log(`[API] Error reprocesando job ${req.params.slug}: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

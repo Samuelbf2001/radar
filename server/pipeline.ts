@@ -135,6 +135,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // Build meta and save
   const phone = input.phone || await fetchContactPhone(contactId);
+  fs.writeFileSync(path.join(outputDir, 'transcript.txt'), transcript);
   fs.writeFileSync(path.join(outputDir, 'meta.json'), JSON.stringify({
     contactId,
     phone,
@@ -146,6 +147,31 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   log(`====== PIPELINE DONE | slug=${slug} ======`);
 
   return { slug, kit, outputDir };
+}
+
+export async function reprocessDeliverables(slug: string): Promise<DiagnosticoResult> {
+  const outputDir = path.join(process.cwd(), 'generated', slug);
+  if (!fs.existsSync(outputDir)) throw new Error('Job folder not found');
+
+  const transcriptPath = path.join(outputDir, 'transcript.txt');
+  if (!fs.existsSync(transcriptPath)) throw new Error('No se encontró transcript.txt para este job. No se puede reprocesar automáticamente.');
+  const transcript = fs.readFileSync(transcriptPath, 'utf8');
+
+  log(`====== PIPELINE REPROCESS | slug=${slug} ======`);
+  log('[Pipeline] Step 1: Regenerating full kit (Claude)...');
+  const kit = await generarKit(transcript);
+  kit.empresa = kit.empresa || `Empresa-${slug}`;
+
+  log('[Pipeline] Step 3: Regenerating voice notes (ElevenLabs)...');
+  const voiceBuffers = await generateAllVoices(kit.notas_de_voz as any);
+
+  log('[Pipeline] Step 4: Regenerating PDF (Puppeteer)...');
+  const pdfBuffer = await generatePdf(kit);
+
+  saveFiles(slug, kit, pdfBuffer, voiceBuffers);
+  log(`====== PIPELINE REPROCESS DONE | slug=${slug} ======`);
+  
+  return kit;
 }
 
 export async function sendDeliverables(slug: string) {
