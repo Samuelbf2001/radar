@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "nanobanana": {
+      "command": "C:\\Users\\samue\\.local\\bin\\uvx.exe",
+      "args": ["nanobanana-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "AIzaSyCXHRry69DDPQfUC5nJ62KLoP87UK81Njs"
+      }
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["-y", "stitch-mcp"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "sixteam-design"
+      }
+    },
+    "21st-magic": {
+      "command": "npx",
+      "args": ["-y", "@21st-dev/magic@latest"],
+      "env": {
+        "API_KEY": "an_sk_bfdbaf5bb5e7d24335cadd643340311b06293eb40421fe8c2c73349c0b4c762e"
+      }
+    }
+  }
+}
