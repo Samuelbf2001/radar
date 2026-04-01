@@ -44,30 +44,59 @@ function anthropicHeaders() {
   };
 }
 
-/** Simple one-shot call — no tools */
+/** Claude API call with intelligent retry logic */
 async function claudeCall(systemPrompt: string, userContent: string, maxTokens: number): Promise<{text: string, usage: any}> {
-  const res = await fetch(ANTHROPIC_BASE, {
-    method: 'POST',
-    headers: anthropicHeaders(),
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
-    }),
-  });
+  const MAX_RETRIES = 3;
+  const TIMEOUT_MS = 900000; // 15 minutes
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Claude API ${res.status}: ${err}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      log(`[Claude] Attempt ${attempt}/${MAX_RETRIES} - Sending request (timeout: ${TIMEOUT_MS}ms)...`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      const startTime = Date.now();
+      const res = await fetch(ANTHROPIC_BASE, {
+        method: 'POST',
+        headers: anthropicHeaders(),
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const elapsedMs = Date.now() - startTime;
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Claude API ${res.status}: ${err}`);
+      }
+
+      const data = await res.json() as any;
+      const usage = data.usage || { input_tokens: 0, output_tokens: 0 };
+      const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
+      log(`[Claude] ✓ Success in ${(elapsedMs / 1000).toFixed(1)}s | Tokens: ${usage.input_tokens} IN | ${usage.output_tokens} OUT — Cost: $${cost.toFixed(3)} USD`);
+
+      return { text: data.content?.[0]?.text ?? '', usage };
+    } catch (error: any) {
+      const isTimeoutOrNetworkError = error.name === 'AbortError' || error.message.includes('fetch failed') || error.message.includes('ECONNRESET');
+      const isLastAttempt = attempt === MAX_RETRIES;
+
+      if (isTimeoutOrNetworkError && !isLastAttempt) {
+        const backoffMs = Math.pow(2, attempt - 1) * 3000; // 3s, 6s, 12s
+        log(`[Claude] ⚠ Timeout/network error on attempt ${attempt}. Retrying in ${backoffMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        continue;
+      }
+
+      throw new Error(`Claude API failed after ${MAX_RETRIES} attempts: ${error.message}`);
+    }
   }
 
-  const data = await res.json() as any;
-  const usage = data.usage || { input_tokens: 0, output_tokens: 0 };
-  const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
-  log(`[Claude] Tokens: ${usage.input_tokens} IN | ${usage.output_tokens} OUT — Costo Aprox: $${cost.toFixed(3)} USD`);
-
-  return { text: data.content?.[0]?.text ?? '', usage };
+  throw new Error('Claude API: Unknown error');
 }
 
 
@@ -79,10 +108,20 @@ function parseJson<T>(text: string): T {
 
 /** Single-pass: analyze transcript and generate full diagnostic kit */
 async function generarKit(transcript: string, version: 'v1' | 'v2' = 'v2'): Promise<{kit: DiagnosticoResult, usage: any, cost: number}> {
-  log(`[Pipeline] Generating full diagnostic kit (single-pass) using ${version}...`);
+  log(`[Pipeline] Starting full diagnostic kit generation using ${version.toUpperCase()}...`);
+  log(`[Pipeline] Transcript length: ${transcript.length} chars`);
+
+  const startTime = Date.now();
   const prompt = version === 'v2' ? SYSTEM_PROMPT_V2 : SYSTEM_PROMPT;
+
+  log(`[Pipeline] Sending to Claude (max 64k output tokens)...`);
   const { text, usage } = await claudeCall(prompt, `TRANSCRIPCIÓN DE LA CONVERSACIÓN:\n\n${transcript}`, 64000);
+
   const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
+  const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  log(`[Pipeline] ✓ Kit generation complete in ${elapsedSec}s`);
+
   return { kit: parseJson<DiagnosticoResult>(text), usage, cost };
 }
 
@@ -121,29 +160,43 @@ export interface PipelineResult {
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const { contactId } = input;
   const slug = `${Date.now()}-${contactId.slice(-6)}`;
+  const totalStartTime = Date.now();
 
-  log(`====== PIPELINE START | contact=${contactId} | slug=${slug} ======`);
+  log(`====== PIPELINE START | contact=${contactId} | slug=${slug} | version=${(input.version || 'v2').toUpperCase()} ======`);
 
   // 0. Extract conversation
+  log(`[Pipeline] Step 0/4: Extracting transcript from GHL...`);
   let transcript = input.transcript;
   if (!transcript) {
+    const step0Start = Date.now();
     transcript = await extractConversationFromGHL(contactId);
+    log(`[Pipeline] Step 0 done in ${((Date.now() - step0Start) / 1000).toFixed(1)}s | transcript: ${transcript.length} chars`);
   }
 
   // 1. Full kit generation — single-pass analysis
+  log(`[Pipeline] Step 1/4: Generating diagnostic kit with Claude...`);
+  const step1Start = Date.now();
   const { kit, usage, cost } = await generarKit(transcript, input.version || 'v2');
   kit.empresa = kit.empresa || `Empresa-${slug}`;
+  log(`[Pipeline] Step 1 done in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`);
 
-  // 3. Voice notes
-  log('[Pipeline] Step 3: generating voice notes...');
+  // 2. Voice notes
+  log(`[Pipeline] Step 2/4: Generating voice notes (ElevenLabs)...`);
+  const step2Start = Date.now();
   const voiceBuffers = await generateAllVoices(kit.notas_de_voz as any);
+  log(`[Pipeline] Step 2 done in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`);
 
-  // 4. PDF
-  log('[Pipeline] Step 4: generating PDF...');
+  // 3. PDF
+  log(`[Pipeline] Step 3/4: Generating PDF (Puppeteer)...`);
+  const step3Start = Date.now();
   const pdfBuffer = await generatePdf(kit);
+  log(`[Pipeline] Step 3 done in ${((Date.now() - step3Start) / 1000).toFixed(1)}s`);
 
-  // 5. Save to disk
+  // 4. Save to disk
+  log(`[Pipeline] Step 4/4: Saving all files to disk...`);
+  const step4Start = Date.now();
   const outputDir = saveFiles(slug, kit, pdfBuffer, voiceBuffers);
+  log(`[Pipeline] Step 4 done in ${((Date.now() - step4Start) / 1000).toFixed(1)}s`);
 
   // Build meta and save
   const phone = input.phone || await fetchContactPhone(contactId);
@@ -160,8 +213,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     }
   }, null, 2));
 
-  log(`[Pipeline] Saved for review. Waiting for manual approval on dashboard.`);
-  log(`====== PIPELINE DONE | slug=${slug} ======`);
+  const totalSec = ((Date.now() - totalStartTime) / 1000).toFixed(1);
+  log(`[Pipeline] ✓ Ready for review on dashboard.`);
+  log(`====== PIPELINE COMPLETE | slug=${slug} | Total: ${totalSec}s | Cost: $${cost.toFixed(3)} ======`);
 
   return { slug, kit, outputDir };
 }
@@ -174,20 +228,31 @@ export async function reprocessDeliverables(slug: string, version: 'v1' | 'v2' =
   if (!fs.existsSync(transcriptPath)) throw new Error('No se encontró transcript.txt para este job. No se puede reprocesar automáticamente.');
   const transcript = fs.readFileSync(transcriptPath, 'utf8');
 
-  log(`====== PIPELINE REPROCESS | slug=${slug} | version=${version} ======`);
-  log(`[Pipeline] Step 1: Regenerating full kit (Claude ${version})...`);
+  const totalStartTime = Date.now();
+  log(`====== PIPELINE REPROCESS START | slug=${slug} | version=${version.toUpperCase()} ======`);
+
+  // Step 1: Claude analysis
+  log(`[Pipeline] Step 1/3: Regenerating diagnostic kit with Claude ${version.toUpperCase()}...`);
+  const step1Start = Date.now();
   const { kit, usage, cost } = await generarKit(transcript, version);
   kit.empresa = kit.empresa || `Empresa-${slug}`;
+  log(`[Pipeline] Step 1 done in ${((Date.now() - step1Start) / 1000).toFixed(1)}s`);
 
-  log('[Pipeline] Step 3: Regenerating voice notes (ElevenLabs)...');
+  // Step 2: Voice notes
+  log(`[Pipeline] Step 2/3: Regenerating voice notes (ElevenLabs)...`);
+  const step2Start = Date.now();
   const voiceBuffers = await generateAllVoices(kit.notas_de_voz as any);
+  log(`[Pipeline] Step 2 done in ${((Date.now() - step2Start) / 1000).toFixed(1)}s`);
 
-  log('[Pipeline] Step 4: Regenerating PDF (Puppeteer)...');
+  // Step 3: PDF
+  log(`[Pipeline] Step 3/3: Regenerating PDF (Puppeteer)...`);
+  const step3Start = Date.now();
   const pdfBuffer = await generatePdf(kit);
+  log(`[Pipeline] Step 3 done in ${((Date.now() - step3Start) / 1000).toFixed(1)}s`);
 
   saveFiles(slug, kit, pdfBuffer, voiceBuffers);
-  
-  // Guardar nueva metadata con métricas actualizadas
+
+  // Update metadata
   const metaPath = path.join(outputDir, 'meta.json');
   let meta: any = {};
   if (fs.existsSync(metaPath)) {
@@ -202,8 +267,9 @@ export async function reprocessDeliverables(slug: string, version: 'v1' | 'v2' =
   };
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
 
-  log(`====== PIPELINE REPROCESS DONE | slug=${slug} ======`);
-  
+  const totalSec = ((Date.now() - totalStartTime) / 1000).toFixed(1);
+  log(`====== PIPELINE REPROCESS DONE | slug=${slug} | Total: ${totalSec}s | Cost: $${cost.toFixed(3)} ======`);
+
   return kit;
 }
 
