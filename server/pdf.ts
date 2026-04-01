@@ -83,7 +83,7 @@ export function buildHtml(kit: DiagnosticoResult): string {
 <!-- ═══════════════════════════════════════════════════════
      PAGE 1  COVER
 ════════════════════════════════════════════════════════ -->
-<div class="page" style="background:#0a2342;min-height:297mm;flex-direction:column;justify-content:space-between">
+<div class="page" style="background:#0a2342;padding:60px 0;flex-direction:column;justify-content:center">
 
   <!-- Top bar -->
   <div style="padding:24px 40px;display:flex;justify-content:space-between;align-items:center">
@@ -137,7 +137,7 @@ ${renderCanvas(kit.canvas_pdf ?? '', kit.empresa || '', fecha)}
 <!-- ═══════════════════════════════════════════════════════
      PAGE 6  CIERRE
 ════════════════════════════════════════════════════════ -->
-<div class="page" style="background:#0a2342;min-height:297mm">
+<div class="page" style="background:#0a2342;padding:40px 0">
 
   <div style="padding:12px 32px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center">
     <div style="display:flex;align-items:center;gap:10px">
@@ -202,10 +202,15 @@ export async function generatePdf(kit: DiagnosticoResult): Promise<Buffer> {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
+    const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
+    const heightMm = Math.ceil(bodyHeight * 25.4 / 96); // px → mm (96 DPI)
+
     const pdf = await page.pdf({
-      format: 'A4',
+      width: '210mm',
+      height: `${heightMm}mm`,
       printBackground: true,
       margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+      pageRanges: '1',
     });
 
     return Buffer.from(pdf);

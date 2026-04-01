@@ -83,6 +83,7 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
+  const [version, setVersion] = useState<'v1' | 'v2'>('v2');
 
   const notaCRM = data.nota_crm ?? {};
   const dims: any[] = data.dimensiones ?? [];
@@ -130,10 +131,14 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
   };
 
   const handleReprocess = async () => {
-    if (!confirm(`¿Estás seguro de reprocesar por completo de nuevo este caso? Esto volverá a analizar el texto con Claude, usará ElevenLabs y guardará todo aquí de nuevo, consumiendo saldo de las APIs.`)) return;
+    if (!confirm(`¿Estás seguro de reprocesar por completo de nuevo este caso usando la versión [${version.toUpperCase()}]? Esto volverá a analizar el texto con Claude, usará ElevenLabs y guardará todo aquí de nuevo, consumiendo tokens de las APIs.`)) return;
     try {
       setReprocessing(true);
-      const res = await fetch(`/api/jobs/${slug}/reprocess`, { method: 'POST' });
+      const res = await fetch(`/api/jobs/${slug}/reprocess`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version })
+      });
       const rData = await res.json();
       if (!res.ok) throw new Error(rData.error || await res.text());
       alert('¡Reprocesado exitosamente!');
@@ -186,8 +191,26 @@ function JobDetail({ data, slug, sent, onActionComplete }: { data: any; slug: st
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginLeft: 20 }}>
-          {!sent && <button onClick={handleReprocess} disabled={reprocessing || sending} style={{ background: '#0a2342', border: '1px solid #1d70a2', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: (reprocessing || sending) ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600 }}>{reprocessing ? '🔄 Reprocesando...' : '🔄 Reprocesar'}</button>}
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginLeft: 20, alignItems: 'center' }}>
+          {!sent && (
+            <div style={{ display: 'flex', background: '#161b22', border: '1px solid #30363d', borderRadius: 6, overflow: 'hidden' }}>
+              <select 
+                value={version} 
+                onChange={(e) => setVersion(e.target.value as 'v1' | 'v2')}
+                style={{ background: 'transparent', color: '#e6edf3', border: 'none', padding: '0 8px', fontSize: 12, cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="v1" style={{ background: '#0d1117' }}>Radar v1</option>
+                <option value="v2" style={{ background: '#0d1117' }}>Radar v2</option>
+              </select>
+              <button 
+                onClick={handleReprocess} 
+                disabled={reprocessing || sending} 
+                style={{ background: '#0a2342', border: 'none', borderLeft: '1px solid #30363d', color: '#fff', padding: '6px 14px', borderRadius: 0, cursor: (reprocessing || sending) ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600 }}
+              >
+                {reprocessing ? '🔄 Reprocesando...' : '🔄 Reprocesar'}
+              </button>
+            </div>
+          )}
           {!sent && <button onClick={handleEdit} disabled={reprocessing || sending} style={{ background: '#21262d', border: '1px solid #30363d', color: '#e6edf3', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>✏️ Editar Datos</button>}
           {!sent && <button onClick={handleSend} disabled={reprocessing || sending} style={{ background: '#1f6feb', border: '1px solid #388bfd', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{sending ? '🚀 Enviando...' : '🚀 Aprobar y Enviar'}</button>}
         </div>

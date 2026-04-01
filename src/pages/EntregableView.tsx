@@ -131,10 +131,11 @@ export default function EntregableView() {
             </div>
           </div>
 
-          {/* Estado actual */}
           <div style={CARD}>
             <div style={LABEL}>ESTADO ACTUAL</div>
-            <div style={{ fontSize: 12, lineHeight: 1.7, color: '#2c2c2a' }}>{data.estado_actual}</div>
+            <div style={{ fontSize: 12, lineHeight: 1.7, color: '#2c2c2a' }}>
+              {typeof data.estado_actual === 'string' ? data.estado_actual : data.estado_actual.resumen}
+            </div>
           </div>
 
           {/* Diagnóstico principal */}
@@ -229,49 +230,103 @@ export default function EntregableView() {
           ))}
         </div>
 
-        {/* ═══════ PAGE 4: PLAN DE ACCIÓN ═══════ */}
+        {/* ═══════ PAGE 4: PLAN DE ACCIÓN (V1) o OPORTUNIDADES (V2) ═══════ */}
         <div style={PAGE}>
-          <div style={SECTION_TITLE}>Plan de acción — Soluciones con tecnología e IA</div>
+          {data.plan_accion ? (
+            <>
+              <div style={SECTION_TITLE}>Plan de acción — Soluciones con tecnología e IA</div>
 
-          {data.plan_accion?.resumen_estrategico && (
-            <div style={{ ...CARD, borderLeft: '4px solid #2d6cdf', marginBottom: 16 }}>
-              <div style={LABEL}>RESUMEN ESTRATÉGICO</div>
-              <div style={{ fontSize: 11, lineHeight: 1.7, color: '#2c2c2a' }}>{data.plan_accion.resumen_estrategico}</div>
-            </div>
-          )}
+              {data.plan_accion?.resumen_estrategico && (
+                <div style={{ ...CARD, borderLeft: '4px solid #2d6cdf', marginBottom: 16 }}>
+                  <div style={LABEL}>RESUMEN ESTRATÉGICO</div>
+                  <div style={{ fontSize: 11, lineHeight: 1.7, color: '#2c2c2a' }}>{data.plan_accion.resumen_estrategico}</div>
+                </div>
+              )}
 
-          {cats.map((cat, i) => (
-            <div key={i} className="avoid-break" style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 16 }}>{cat.icono}</span>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 14, fontWeight: 800, color: '#0d1f3c' }}>{cat.categoria}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: (PRIO_STYLE[cat.prioridad] || PRIO_STYLE['Media']).bg, color: (PRIO_STYLE[cat.prioridad] || PRIO_STYLE['Media']).color }}>{cat.prioridad}</span>
+              {cats.map((cat, i) => (
+                <div key={i} className="avoid-break" style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 16 }}>{cat.icono}</span>
+                    <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 14, fontWeight: 800, color: '#0d1f3c' }}>{cat.categoria}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: (PRIO_STYLE[cat.prioridad] || PRIO_STYLE['Media']).bg, color: (PRIO_STYLE[cat.prioridad] || PRIO_STYLE['Media']).color }}>{cat.prioridad}</span>
+                  </div>
+                  {cat.descripcion && <div style={{ fontSize: 10, color: '#5f7fa8', marginBottom: 6, marginLeft: 24 }}>{cat.descripcion}</div>}
+                  {(cat.acciones || []).map((a, j) => (
+                    <div key={j} style={{ display: 'flex', gap: 8, padding: '6px 10px', marginLeft: 24, marginBottom: 4, background: '#faf9f5', borderRadius: 6, alignItems: 'flex-start' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: HORIZONTE_COLOR[a.horizonte] || '#888', flexShrink: 0, marginTop: 5 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#1a1a18' }}>{a.accion}</div>
+                        <div style={{ fontSize: 9, color: '#888780' }}>{a.horizonte} · {a.impacto}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {(cat.herramientas_sugeridas || []).length > 0 && (
+                    <div style={{ marginLeft: 24, marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {cat.herramientas_sugeridas.map((h, j) => (
+                        <span key={j} style={{ background: '#eeedfe', color: '#534ab7', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>{h}</span>
+                      ))}
+                    </div>
+                  )}
+                  {cat.resultado_esperado && (
+                    <div style={{ marginLeft: 24, marginTop: 6, background: '#e1f5ee', borderRadius: 6, padding: '6px 10px', borderLeft: '2px solid #1d9e75' }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: '#0f6e56' }}>RESULTADO: </span>
+                      <span style={{ fontSize: 10, color: '#085041' }}>{cat.resultado_esperado}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          ) : data.oportunidades ? (
+            <>
+              <div style={SECTION_TITLE}>Mapa de Oportunidades Tecnológicas</div>
+              <div style={{ ...CARD, borderLeft: '4px solid #00bfa5', marginBottom: 20 }}>
+                <div style={{ fontSize: 12, lineHeight: 1.6 }}>Se han identificado las siguientes oportunidades de inserción tecnológica y automatización para optimizar la operación de {data.empresa}.</div>
               </div>
-              {cat.descripcion && <div style={{ fontSize: 10, color: '#5f7fa8', marginBottom: 6, marginLeft: 24 }}>{cat.descripcion}</div>}
-              {(cat.acciones || []).map((a, j) => (
-                <div key={j} style={{ display: 'flex', gap: 8, padding: '6px 10px', marginLeft: 24, marginBottom: 4, background: '#faf9f5', borderRadius: 6, alignItems: 'flex-start' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: HORIZONTE_COLOR[a.horizonte] || '#888', flexShrink: 0, marginTop: 5 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#1a1a18' }}>{a.accion}</div>
-                    <div style={{ fontSize: 9, color: '#888780' }}>{a.horizonte} · {a.impacto}</div>
+              
+              {data.oportunidades.map((op, i) => (
+                <div key={i} className="avoid-break" style={{ ...CARD, border: '1px solid #e8e6de', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ background: '#0d1f3c', color: '#fff', padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 900 }}>{op.tipo.toUpperCase()}</div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: '#0d1f3c' }}>{op.nombre}</div>
+                    </div>
+                    {op.viable_hoy && <div style={{ background: '#e1f5ee', color: '#0f6e56', padding: '2px 8px', borderRadius: 99, fontSize: 9, fontWeight: 700 }}>VIABLE HOY</div>}
+                  </div>
+                  <div style={{ fontSize: 11, marginBottom: 8 }}><span style={{ color: '#888780', fontWeight: 700 }}>Dolor que resuelve:</span> {op.dolor_que_resuelve}</div>
+                  <div style={{ fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>{op.que_hace}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ background: '#f4f2ec', padding: '6px 10px', borderRadius: 6 }}>
+                      <div style={LABEL}>HERRAMIENTA</div>
+                      <div style={{ fontSize: 11, fontWeight: 700 }}>{op.herramienta_sugerida}</div>
+                      <div style={{ fontSize: 9, color: '#888780', marginTop: 2 }}>{op.por_que_esta_herramienta}</div>
+                    </div>
+                    <div style={{ background: '#f4f2ec', padding: '6px 10px', borderRadius: 6 }}>
+                      <div style={LABEL}>REQUISITOS</div>
+                      <div style={{ fontSize: 11 }}>{op.requiere_antes}</div>
+                    </div>
                   </div>
                 </div>
               ))}
-              {(cat.herramientas_sugeridas || []).length > 0 && (
-                <div style={{ marginLeft: 24, marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {cat.herramientas_sugeridas.map((h, j) => (
-                    <span key={j} style={{ background: '#eeedfe', color: '#534ab7', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>{h}</span>
+
+              {data.ideas_del_cliente_validadas && data.ideas_del_cliente_validadas.length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <div style={LABEL}>VALIDACIÓN DE IDEAS DEL CLIENTE</div>
+                  {data.ideas_del_cliente_validadas.map((idea, i) => (
+                    <div key={i} style={{ padding: '10px 12px', borderLeft: '3px solid #3c3489', background: '#f4f2ec', borderRadius: 6, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700 }}>"{idea.idea_original}"</div>
+                        <div style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#eeedfe', color: '#3c3489' }}>{idea.evaluacion.toUpperCase()}</div>
+                      </div>
+                      <div style={{ fontSize: 10, marginTop: 4 }}>{idea.razon}</div>
+                      {idea.ajuste_sugerido && <div style={{ fontSize: 10, color: '#3c3489', marginTop: 4, fontStyle: 'italic' }}>Sug: {idea.ajuste_sugerido}</div>}
+                    </div>
                   ))}
                 </div>
               )}
-              {cat.resultado_esperado && (
-                <div style={{ marginLeft: 24, marginTop: 6, background: '#e1f5ee', borderRadius: 6, padding: '6px 10px', borderLeft: '2px solid #1d9e75' }}>
-                  <span style={{ fontSize: 9, fontWeight: 800, color: '#0f6e56' }}>RESULTADO: </span>
-                  <span style={{ fontSize: 10, color: '#085041' }}>{cat.resultado_esperado}</span>
-                </div>
-              )}
-            </div>
-          ))}
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: '#888780' }}>No se ha configurado un plan de acción ni oportunidades para este diagnóstico.</div>
+          )}
         </div>
 
         {/* ═══════ PAGE 5: CRONOGRAMA + KPIS ═══════ */}
@@ -302,7 +357,7 @@ export default function EntregableView() {
                   <div style={{ fontSize: 9, fontWeight: 800, color: '#a32d2d' }}>HOY</div>
                   <div style={{ fontSize: 9, fontWeight: 800, color: '#0f6e56' }}>META 90 DÍAS</div>
                 </div>
-                {data.plan_accion.kpis_de_exito.map((k, i) => (
+                {data.plan_accion?.kpis_de_exito?.map((k, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, padding: '8px 12px', borderTop: '1px solid #f4f2ec' }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#1a1a18' }}>{k.metrica}</div>
                     <div style={{ fontSize: 11, color: '#a32d2d' }}>{k.estado_actual}</div>
@@ -316,7 +371,7 @@ export default function EntregableView() {
           {(data.plan_accion?.advertencias || []).length > 0 && (
             <>
               <div style={LABEL}>CONDICIONES CRÍTICAS</div>
-              {data.plan_accion.advertencias.map((a, i) => (
+              {data.plan_accion?.advertencias?.map((a, i) => (
                 <div key={i} className="avoid-break" style={{ display: 'flex', gap: 8, padding: '8px 12px', marginBottom: 6, background: '#fff8e8', borderRadius: 8, border: '1px solid #f0d68f' }}>
                   <span style={{ flexShrink: 0 }}>!</span>
                   <div style={{ fontSize: 11, color: '#6a5313', lineHeight: 1.5 }}>{a}</div>

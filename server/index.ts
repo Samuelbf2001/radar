@@ -204,8 +204,9 @@ app.post('/api/jobs/:slug/update', async (req, res) => {
 /** POST /api/jobs/:slug/reprocess — vuelve a correr TODO (Claude, 11Labs, PDF) desde transcript.txt */
 app.post('/api/jobs/:slug/reprocess', async (req, res) => {
   try {
-    log(`[API] Solicitud de REPROCESAMIENTO COMPLETO para job: ${req.params.slug}`);
-    const newKit = await reprocessDeliverables(req.params.slug);
+    const { version = 'v2' } = req.body;
+    log(`[API] Solicitud de REPROCESAMIENTO COMPLETO (${version}) para job: ${req.params.slug}`);
+    const newKit = await reprocessDeliverables(req.params.slug, version);
     res.json({ success: true, kit: newKit });
   } catch (err: any) {
     log(`[API] Error reprocesando job ${req.params.slug}: ${err.message}`);

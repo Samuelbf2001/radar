@@ -27,6 +27,7 @@ function log(...args: any[]) {
 import { generateAllVoices, VOZ_FILENAMES } from './voices.js';
 import { generatePdf } from './pdf.js';
 import { SYSTEM_PROMPT } from '../src/constants/radar.js';
+import { SYSTEM_PROMPT_V2 } from '../src/constants/radar-v2.js';
 import type { DiagnosticoResult } from '../src/types/diagnostico.js';
 
 const CLAUDE_MODEL = 'claude-opus-4-6';
@@ -77,9 +78,10 @@ function parseJson<T>(text: string): T {
 }
 
 /** Single-pass: analyze transcript and generate full diagnostic kit */
-async function generarKit(transcript: string): Promise<{kit: DiagnosticoResult, usage: any, cost: number}> {
-  log('[Pipeline] Generating full diagnostic kit (single-pass)...');
-  const { text, usage } = await claudeCall(SYSTEM_PROMPT, `TRANSCRIPCIÓN DE LA CONVERSACIÓN:\n\n${transcript}`, 64000);
+async function generarKit(transcript: string, version: 'v1' | 'v2' = 'v2'): Promise<{kit: DiagnosticoResult, usage: any, cost: number}> {
+  log(`[Pipeline] Generating full diagnostic kit (single-pass) using ${version}...`);
+  const prompt = version === 'v2' ? SYSTEM_PROMPT_V2 : SYSTEM_PROMPT;
+  const { text, usage } = await claudeCall(prompt, `TRANSCRIPCIÓN DE LA CONVERSACIÓN:\n\n${transcript}`, 64000);
   const cost = (usage.input_tokens * (15 / 1000000)) + (usage.output_tokens * (75 / 1000000));
   return { kit: parseJson<DiagnosticoResult>(text), usage, cost };
 }
@@ -107,6 +109,7 @@ export interface PipelineInput {
   contactId: string;
   transcript?: string;
   phone?: string;
+  version?: 'v1' | 'v2';
 }
 
 export interface PipelineResult {
@@ -128,7 +131,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   }
 
   // 1. Full kit generation — single-pass analysis
-  const { kit, usage, cost } = await generarKit(transcript);
+  const { kit, usage, cost } = await generarKit(transcript, input.version || 'v2');
   kit.empresa = kit.empresa || `Empresa-${slug}`;
 
   // 3. Voice notes
@@ -163,7 +166,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   return { slug, kit, outputDir };
 }
 
-export async function reprocessDeliverables(slug: string): Promise<DiagnosticoResult> {
+export async function reprocessDeliverables(slug: string, version: 'v1' | 'v2' = 'v2'): Promise<DiagnosticoResult> {
   const outputDir = path.join(process.cwd(), 'generated', slug);
   if (!fs.existsSync(outputDir)) throw new Error('Job folder not found');
 
@@ -171,9 +174,9 @@ export async function reprocessDeliverables(slug: string): Promise<DiagnosticoRe
   if (!fs.existsSync(transcriptPath)) throw new Error('No se encontró transcript.txt para este job. No se puede reprocesar automáticamente.');
   const transcript = fs.readFileSync(transcriptPath, 'utf8');
 
-  log(`====== PIPELINE REPROCESS | slug=${slug} ======`);
-  log('[Pipeline] Step 1: Regenerating full kit (Claude)...');
-  const { kit, usage, cost } = await generarKit(transcript);
+  log(`====== PIPELINE REPROCESS | slug=${slug} | version=${version} ======`);
+  log(`[Pipeline] Step 1: Regenerating full kit (Claude ${version})...`);
+  const { kit, usage, cost } = await generarKit(transcript, version);
   kit.empresa = kit.empresa || `Empresa-${slug}`;
 
   log('[Pipeline] Step 3: Regenerating voice notes (ElevenLabs)...');
@@ -191,6 +194,7 @@ export async function reprocessDeliverables(slug: string): Promise<DiagnosticoRe
     try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
   }
   meta.lastReprocessedAt = new Date().toISOString();
+  meta.version = version;
   meta.usage = {
     input_tokens: usage.input_tokens,
     output_tokens: usage.output_tokens,

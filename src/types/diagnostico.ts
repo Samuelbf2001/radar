@@ -10,13 +10,39 @@ export interface NotaCRM     { resumen_ejecutivo: string; dolor_principal: strin
 
 
 
+export interface Oportunidad {
+  tipo: 'sistema' | 'integracion' | 'automatizacion' | 'agente_ia' | 'proceso' | 'dashboard';
+  nombre: string;
+  dolor_que_resuelve: string;
+  que_hace: string;
+  herramienta_sugerida: string;
+  por_que_esta_herramienta: string;
+  requiere_antes: string;
+  viable_hoy: boolean;
+}
+
+export interface IdeaValidada {
+  idea_original: string;
+  evaluacion: 'viable' | 'viable con ajustes' | 'no viable aún' | 'no recomendada';
+  razon: string;
+  ajuste_sugerido: string;
+}
+
 export interface DiagnosticoResult {
   empresa: string; sector: string; contacto: string; cargo: string;
   objetivo_declarado: string; objetivo_subyacente: string;
   diagnostico_principal: { codigo: string; nombre: string; lectura: string };
   diagnostico_secundario: { codigo: string; nombre: string; lectura: string };
-  estado_actual: string;
-  dolores_prioritarios: { dolor: string; impacto: string }[];
+  estado_actual: string | {
+    resumen: string;
+    procesos_definidos: boolean;
+    sistemas_activos: boolean;
+    automatizaciones: boolean;
+    uso_ia: boolean;
+    herramientas_actuales: { herramienta: string; uso_real: string; aprovechamieno: string }[];
+    nivel_madurez_digital: string;
+  };
+  dolores_prioritarios: { dolor: string; impacto: string; solucionable_con_tech?: boolean }[];
   causas_raiz: { causa: string; evidencia: string; confianza: string }[];
   dimensiones: Dimension[];
   score: Record<string, number>;
@@ -26,7 +52,9 @@ export interface DiagnosticoResult {
   recomendacion: string;
   razon_recomendacion: string;
   siguiente_paso: string;
-  plan_accion: PlanAccionT;
+  plan_accion?: PlanAccionT;
+  oportunidades?: Oportunidad[];
+  ideas_del_cliente_validadas?: IdeaValidada[];
   mensajes_whatsapp: Record<string, MsgItem>;
   notas_de_voz: Record<string, VozItem>;
   nota_crm: NotaCRM;

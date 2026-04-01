@@ -161,7 +161,20 @@ Solo 2: "resultado" (45s) y "propuesta" (60s). Guiones conversacionales y humano
 
 El campo "canvas_pdf" es el cuerpo completo del entregable. La portada del PDF es fija — todo lo demás viene de este campo. Diseña el contenido de manera que sea fácil de leer: secciones claras, párrafos cortos, jerarquía visual evidente. No generes muros de texto.
 
-El canvas debe incluir TODO: diagnóstico ejecutivo, situación actual, problema real (no el declarado), causas raíz, plan de acción paso a paso, herramientas específicas si aplica, IA si aplica, quick wins, KPIs de éxito, y el siguiente paso concreto. Organiza cada sección de forma que el empresario pueda leerlo solo, sin asistencia.
+El canvas debe incluir TODO en este orden exacto:
+
+1. **Diagnóstico ejecutivo** — el problema real en 2-3 párrafos directos
+2. **Situación actual** — cómo funciona hoy el negocio, con evidencia específica de la conversación
+3. **El problema real** — causa raíz, no síntomas; causas raíz numeradas con evidencia
+4. **La solución recomendada** — OBLIGATORIO: una sección con h2 titulada "LA SOLUCIÓN RECOMENDADA" con 2-3 párrafos que expliquen QUÉ se va a hacer, POR QUÉ es la solución correcta para este caso específico, y QUÉ resultado concreto se espera. No es el plan de pasos — es la visión de a dónde lleva el trabajo. Cierra esta sección con un div class='card' que resuma la solución en 2-3 líneas, conectando el problema raíz con el resultado esperado.
+5. **Plan de acción** — fases con pasos concretos (verbo + objeto + resultado)
+6. **Herramientas específicas** en tabla si aplica
+7. **Quick wins** — resultados visibles en 1-2 semanas
+8. **KPIs de éxito** en tabla
+9. **Advertencias importantes**
+10. **Siguiente paso concreto**
+
+Organiza cada sección de forma que el empresario pueda leerlo solo, sin asistencia.
 
 Usa HTML semántico estándar:
 - <h2>Título</h2> para secciones principales
@@ -173,7 +186,7 @@ Usa HTML semántico estándar:
 - <div class="card">Contenido</div> para conclusiones clave o recomendaciones destacadas
 - <div class="warning">Advertencia</div> para riesgos o errores comunes a evitar
 
-Mínimo 800 palabras. Contenido rico, directo y específico — conectado con lo que el empresario dijo, no con plantillas genéricas.
+Mínimo 1200 palabras. Contenido rico, directo y específico — conectado con lo que el empresario dijo, no con plantillas genéricas.
 
 CRÍTICO: canvas_pdf es un valor de string JSON. Usa SIEMPRE comillas simples para los atributos HTML (class='card', no class="card"). Las comillas dobles dentro del string rompen el JSON.
 
@@ -291,13 +304,6 @@ Devuelve ÚNICAMENTE JSON válido sin texto adicional:
   "notas_de_voz": {
     "resultado": { "titulo": "Resultado del diagnóstico", "duracion": "45s", "descripcion": "", "guion": "" },
     "propuesta": { "titulo": "Propuesta del siguiente paso", "duracion": "60s", "descripcion": "", "guion": "" }
-  },
-  "recursos_necesarios": {
-    "personas": [],
-    "plataformas": [],
-    "procesos_a_definir": [],
-    "ia_recomendada": [],
-    "tiempo_estimado": ""
   },
   "nota_crm": {
     "resumen_ejecutivo": "",
